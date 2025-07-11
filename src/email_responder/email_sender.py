@@ -5,8 +5,8 @@ import base64
 import json
 import os
 from typing import Optional, Dict, Any
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from fastmcp import FastMCP
 from google.auth.transport.requests import Request
@@ -201,7 +201,7 @@ class EmailSender:
         """Create email message in Gmail API format."""
         
         # Create MIME message
-        message = MimeMultipart('alternative')
+        message = MIMEMultipart('alternative')
         message['To'] = to_email
         message['From'] = config.gmail_email_address
         message['Subject'] = subject
@@ -211,9 +211,9 @@ class EmailSender:
             message['References'] = in_reply_to
         
         # Add HTML and plain text versions
-        text_part = MimeText(body, 'plain', 'utf-8')
+        text_part = MIMEText(body, 'plain', 'utf-8')
         html_body = self._convert_to_html(body)
-        html_part = MimeText(html_body, 'html', 'utf-8')
+        html_part = MIMEText(html_body, 'html', 'utf-8')
         
         message.attach(text_part)
         message.attach(html_part)

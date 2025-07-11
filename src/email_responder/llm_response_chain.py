@@ -5,8 +5,6 @@ from typing import List, Dict, Any, Optional
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.schema import Document, HumanMessage, SystemMessage
 from langchain.prompts import ChatPromptTemplate, PromptTemplate
-from langchain.output_parsers import StrOutputParser
-from langchain.chain.base import Chain
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.schema.output_parser import BaseOutputParser
 
