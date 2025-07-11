@@ -2,6 +2,8 @@
 
 An intelligent email response system that automatically processes incoming Gmail messages and generates contextual responses using Google's Gemini 2.5 Flash, LangChain, LangGraph, and Gmail MCP integration.
 
+![Demo Screenshot](./test.png)
+
 ## 🚀 Features
 
 - **Automated Email Processing**: Fetches unread emails from Gmail and processes them automatically
