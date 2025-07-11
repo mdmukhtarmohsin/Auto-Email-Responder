@@ -256,7 +256,7 @@ class PolicyRetriever:
         
         # Check cache first
         cache_key = f"retrieval_{intent}_{hash(query) % 10000}"
-        cached_docs = cache_manager.get_embeddings(cache_key)
+        cached_docs = cache_manager.get("retrieval", cache_key)
         if cached_docs:
             logger.debug("Retrieved documents from cache")
             return cached_docs, intent
@@ -269,7 +269,7 @@ class PolicyRetriever:
             ranked_docs = self._rank_documents_by_intent(documents, intent)
             
             # Cache the results
-            cache_manager.set_embeddings(cache_key, ranked_docs)
+            cache_manager.set("retrieval", cache_key, ranked_docs)
             
             logger.info(f"Retrieved {len(ranked_docs)} relevant documents for intent: {intent}")
             return ranked_docs, intent
@@ -320,7 +320,7 @@ class PolicyRetriever:
             
             if self.vectorstore:
                 self._setup_retriever()
-                cache_manager.clear_embeddings_cache()
+                cache_manager.clear_cache()
                 logger.info("Successfully refreshed policy index")
                 return True
                 

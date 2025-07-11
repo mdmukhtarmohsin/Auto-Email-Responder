@@ -100,7 +100,40 @@ MAX_RESPONSE_LENGTH=500
    python3 main.py --test
    ```
 
-### 4. Policy Knowledge Base
+### 4. Testing with Just Google API Key
+
+If you want to test the AI components without setting up Gmail integration, you can:
+
+1. **Minimal Configuration**:
+
+   ```bash
+   # Copy the example and set only the Google API key
+   cp .env.example .env
+   nano .env  # Set GOOGLE_API_KEY only
+   ```
+
+2. **Test AI Components**:
+
+   ```bash
+   # Test AI pipeline without Gmail
+   python3 main.py --test-ai
+   ```
+
+   This will test:
+
+   - ✅ Gemini LLM connection and response generation
+   - ✅ Policy document loading and vector search
+   - ✅ Intent classification system
+   - ✅ Cache system functionality
+   - ✅ Complete AI pipeline with sample email
+
+3. **View Sample AI Processing**:
+   ```bash
+   # Run with verbose logging to see AI pipeline in action
+   python3 main.py --test-ai --verbose
+   ```
+
+### 5. Policy Knowledge Base
 
 The system includes sample policy files. You can customize them:
 
@@ -129,6 +162,9 @@ python3 main.py --status
 
 # Test all components
 python3 main.py --test
+
+# Test only AI components (no Gmail setup required)
+python3 main.py --test-ai
 
 # Refresh policy knowledge base
 python3 main.py --refresh-policies

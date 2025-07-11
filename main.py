@@ -151,24 +151,31 @@ class EmailResponderApp:
             logger.error(f"Error refreshing policies: {e}")
             return False
     
-    def test_components(self) -> Dict[str, bool]:
-        """Test all system components."""
-        logger.info("Testing all system components")
+    def test_components(self, ai_only: bool = False) -> Dict[str, bool]:
+        """Test all system components.
+        
+        Args:
+            ai_only: If True, only test AI components (skip Gmail)
+        """
+        logger.info(f"Testing {'AI-only' if ai_only else 'all'} system components")
         
         test_results = {}
         
         try:
-            # Test Gmail fetcher
-            test_results["gmail_fetcher"] = gmail_fetcher.test_connection()
-            logger.info(f"Gmail fetcher test: {'PASS' if test_results['gmail_fetcher'] else 'FAIL'}")
+            if not ai_only:
+                # Test Gmail fetcher
+                test_results["gmail_fetcher"] = gmail_fetcher.test_connection()
+                logger.info(f"Gmail fetcher test: {'PASS' if test_results['gmail_fetcher'] else 'FAIL'}")
+                
+                # Test email sender
+                test_results["email_sender"] = email_sender.test_connection()
+                logger.info(f"Email sender test: {'PASS' if test_results['email_sender'] else 'FAIL'}")
+            else:
+                logger.info("Skipping Gmail tests (AI-only mode)")
             
             # Test LLM response chain
             test_results["llm_response"] = llm_response_chain.test_connection()
             logger.info(f"LLM response test: {'PASS' if test_results['llm_response'] else 'FAIL'}")
-            
-            # Test email sender
-            test_results["email_sender"] = email_sender.test_connection()
-            logger.info(f"Email sender test: {'PASS' if test_results['email_sender'] else 'FAIL'}")
             
             # Test cache manager
             test_results["cache_manager"] = cache_manager.test_connection()
@@ -179,8 +186,14 @@ class EmailResponderApp:
             test_results["policy_retriever"] = policy_stats.get("vectorstore_exists", False)
             logger.info(f"Policy retriever test: {'PASS' if test_results['policy_retriever'] else 'FAIL'}")
             
+            # Test AI pipeline with sample data
+            if ai_only or all([test_results.get("llm_response"), test_results.get("policy_retriever")]):
+                test_results["ai_pipeline"] = self._test_ai_pipeline()
+                logger.info(f"AI pipeline test: {'PASS' if test_results['ai_pipeline'] else 'FAIL'}")
+            
             # Overall system test
-            all_pass = all(test_results.values())
+            relevant_tests = [v for k, v in test_results.items() if k != "error"]
+            all_pass = all(relevant_tests) if relevant_tests else False
             test_results["overall"] = all_pass
             logger.info(f"Overall system test: {'PASS' if all_pass else 'FAIL'}")
             
@@ -189,6 +202,47 @@ class EmailResponderApp:
             test_results["error"] = str(e)
         
         return test_results
+
+    def _test_ai_pipeline(self) -> bool:
+        """Test the AI pipeline with sample email data."""
+        try:
+            # Sample email for testing
+            sample_subject = "Billing Question - Refund Request"
+            sample_body = "Hi, I would like to request a refund for my subscription. I'm not satisfied with the service."
+            sample_sender = "test.customer@example.com"
+            
+            logger.info("Testing AI pipeline with sample email...")
+            
+            # Test intent classification and policy retrieval
+            relevant_docs, intent = policy_retriever.retrieve_relevant_policies(
+                email_subject=sample_subject,
+                email_body=sample_body
+            )
+            
+            if not relevant_docs:
+                logger.warning("No relevant documents retrieved")
+                return False
+            
+            logger.info(f"Retrieved {len(relevant_docs)} documents for intent: {intent}")
+            
+            # Test response generation
+            response = llm_response_chain.generate_response(
+                email_subject=sample_subject,
+                email_body=sample_body,
+                sender_name="Test Customer",
+                context_documents=relevant_docs
+            )
+            
+            if not response or len(response.strip()) < 10:
+                logger.warning("Generated response too short or empty")
+                return False
+            
+            logger.info(f"Generated response ({len(response)} chars): {response[:100]}...")
+            return True
+            
+        except Exception as e:
+            logger.error(f"AI pipeline test failed: {e}")
+            return False
 
 
 def main():
@@ -218,6 +272,11 @@ def main():
         "--test", 
         action="store_true", 
         help="Test all system components"
+    )
+    parser.add_argument(
+        "--test-ai", 
+        action="store_true", 
+        help="Test only AI components (Gemini, policy retrieval, cache) - no Gmail setup required"
     )
     parser.add_argument(
         "--verbose", "-v", 
@@ -283,6 +342,26 @@ def main():
                 sys.exit(0)
             else:
                 print("\n✗ Some components failed tests")
+                sys.exit(1)
+                
+        elif args.test_ai:
+            # Test AI components only
+            results = app.test_components(ai_only=True)
+            print("\n=== AI COMPONENT TEST RESULTS ===")
+            for component, passed in results.items():
+                if component == "error":
+                    continue
+                status_icon = "✓" if passed else "✗"
+                print(f"  {status_icon} {component}: {'PASS' if passed else 'FAIL'}")
+            
+            if "error" in results:
+                print(f"\nError: {results['error']}")
+                sys.exit(1)
+            elif results.get("overall"):
+                print("\n✓ All AI components are working correctly")
+                sys.exit(0)
+            else:
+                print("\n✗ Some AI components failed tests")
                 sys.exit(1)
                 
         elif args.daemon:

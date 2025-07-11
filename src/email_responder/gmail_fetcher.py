@@ -281,6 +281,28 @@ class GmailFetcher:
         """Get the MCP server instance."""
         return self.mcp_server
 
+    def test_connection(self) -> bool:
+        """Test Gmail API connection."""
+        if not self.service:
+            logger.error("Gmail service not initialized")
+            return False
+        
+        try:
+            # Try to get user profile to test connection
+            profile = self.service.users().getProfile(userId='me').execute()
+            email_address = profile.get('emailAddress', '')
+            logger.info(f"Gmail connection test successful - Email: {email_address}")
+            
+            # Verify it matches configured email
+            if config.gmail_email_address and email_address != config.gmail_email_address:
+                logger.warning(f"Connected email ({email_address}) differs from configured email ({config.gmail_email_address})")
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Gmail connection test failed: {e}")
+            return False
+
 
 # Global Gmail fetcher instance
 gmail_fetcher = GmailFetcher() 

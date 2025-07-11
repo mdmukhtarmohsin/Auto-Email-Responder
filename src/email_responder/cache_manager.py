@@ -135,6 +135,60 @@ class CacheManager:
                 logger.warning(f"Failed to clear Redis cache: {e}")
         logger.info("Cleared memory cache")
 
+    def test_connection(self) -> bool:
+        """Test cache system connectivity."""
+        try:
+            # Test memory cache
+            test_key = "test_connection_key"
+            test_value = "test_value"
+            self.set("test", test_key, test_value)
+            retrieved = self.get("test", test_key)
+            
+            if retrieved != test_value:
+                logger.error("Memory cache test failed")
+                return False
+            
+            # Test Redis if enabled
+            if self.redis_client:
+                try:
+                    self.redis_client.ping()
+                    logger.debug("Redis connection test successful")
+                except Exception as e:
+                    logger.warning(f"Redis connection test failed: {e}")
+                    # Still return True since memory cache works
+            
+            logger.debug("Cache connection test successful")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Cache connection test failed: {e}")
+            return False
+
+    def get_cache_stats(self) -> Dict[str, Any]:
+        """Get cache statistics and status."""
+        stats = {
+            "memory_cache_enabled": True,
+            "memory_cache_entries": len(self.memory_cache),
+            "redis_enabled": config.use_redis_cache,
+            "redis_connected": False,
+            "redis_available": REDIS_AVAILABLE
+        }
+        
+        if self.redis_client:
+            try:
+                self.redis_client.ping()
+                stats["redis_connected"] = True
+                
+                # Get Redis info if possible
+                info = self.redis_client.info()
+                stats["redis_memory_used"] = info.get("used_memory_human", "unknown")
+                stats["redis_total_keys"] = info.get("db0", {}).get("keys", 0)
+                
+            except Exception as e:
+                logger.debug(f"Could not get Redis stats: {e}")
+        
+        return stats
+
 
 # Global cache instance
 cache_manager = CacheManager() 
